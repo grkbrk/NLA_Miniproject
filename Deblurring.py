@@ -8,14 +8,17 @@ t = np.linspace(a,b,n)           #Time array
 xt = np.exp(t)*np.sin(np.pi*t)   
 
 def x(t):               #True signal
-    return np.ext(t)*np.sin(np.pi*t)
+    return np.exp(t)*np.sin(np.pi*t)
 
-#A = #Matrix A (deblurring operator)
 #Box quadrate rule 
+A = np.eye(n) #Matrix A (deblurring operator)
+A[0,0] = 1/2
+A[-1,-1] = 1/2
+
 B = 1 #In Gaussian kernel
 c = 1 #Const
 def K(s,t):     #Gaussian kernel
-    return c*np.exp(-np.transpose(s-t) @ B @ (x-t))
+    return c*np.exp(-np.transpose(s-t) @ B @ (s-t)) #Or should the last s be x????
 
 #Ndit = #Normal distribution
 #del = #Noise level
