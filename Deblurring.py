@@ -1,16 +1,17 @@
 import numpy as np;
 import math;
 
-a = -1                  #Upper bound
-b = 1                   #Lower bound
-n = 10                  #Number of samples
-t = np.linspace(a,b,n)           #Time array
-dt= t[1]-t[0]              #Time step
-xt = np.exp(t)*np.sin(np.pi*t)   
+a = -1                          #Upper bound
+b = 1                           #Lower bound
+n = 10                          #Number of samples
+t = np.linspace(a,b,n)          #Time array
+dt= t[1]-t[0]                   #Time step
+xt = np.exp(t)*np.sin(np.pi*t)  #x at time t array
 
-def x(t):               #True signal
+def x(t):                       #True signal
     return np.exp(t)*np.sin(np.pi*t)
 
+#IS THIS WHERE K SHOULD BE USED SOMEHOW?
 #Box quadrate rule 
 A = np.eye(n) #Matrix A (deblurring operator)
 A[0,0] = 1/2
@@ -18,7 +19,7 @@ A[-1,-1] = 1/2
 
 B = 1 #In Gaussian kernel, choose sufficiently large.
 c = 1 #Const, which value to use?
-def K(s,t):     #Gaussian kernel
+def K(s,t):     #Gaussian kernel (point spread function (PSF))
     return c*np.exp(-np.transpose(s-t) @ B @ (s-t)) #Or should the last s be x????
 
 Ndit = np.random.normal(0, 1, n)  #Normal distribution
