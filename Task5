@@ -1,0 +1,28 @@
+from matplotlib import pyplot as plt 
+import Deblurring as db
+#Default:
+    # lambda, noise level, number of samples
+    # def deblurr(lb = 0.5, nl = 0.5, n = 10):
+#Return: 
+    #Time array, true signal, reconstructed signal, blurred noisy data, filter factor
+    #return x, x_re, b, Phi
+
+#Compute both the regularized solution and the unregularized least-squares
+#solution. Plot the true signal, the blurred noisy data, and the reconstructed
+#signals in the same figure. Compare the quality of the reconstructions.
+
+
+#Regularized solution
+t, x_t, x_r, b_r, Phi_r = db.deblurr()
+
+#Unregularized solution
+t, x_t, x_u, b_u, Phi_u = db.deblurr(0)
+
+plt.figure()
+plt.plot(t, x_t, label="True signal")
+plt.plot(t, x_r, label="Regularized")
+plt.plot(t, b_r, label="Blurred noisy regularized data")
+plt.plot(t, x_u, label="Unregularized")
+plt.plot(t, b_u, label="Blurred noisy unregularized data")
+plt.legend()
+plt.show()

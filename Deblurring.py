@@ -1,55 +1,65 @@
 import numpy as np
 import gsvd
 
-a = -1                          #Upper bound
-b = 1                           #Lower bound
-n = 10                          #Number of samples
-t = np.linspace(a,b,n)          #Time array (equidistant)
-dt= t[1]-t[0]                   #Time step
-x = np.exp(t)*np.sin(np.pi*t)   #x at time t array
+#Lambda: 0<=lb<=1
+#Number of samples: n
+def deblurr(lb = 0.5, nl = 0.5, n = 10):
 
-lb = 0.5 #0<=lambda<=1
+    a = -1                          #Upper bound
+    b = 1                           #Lower bound
+    #n = 10                         #Number of samples
+    t = np.linspace(a,b,n)          #Time array (equidistant)
+    dt= t[1]-t[0]                   #Time step
+    #x = np.exp(t)*np.sin(np.pi*t)   #x at time t array
 
-#True signal
-def xt(t):                       
-    return np.exp(t)*np.sin(np.pi*t)
+    #True signal
+    def xt(t):                       
+        return np.exp(t)*np.sin(np.pi*t)
 
-#Gaussian kernel
-B = 1   #In Gaussian kernel, choose sufficiently large. 1D
-c = 1   #Const, which value to use?
-def K(s,t):     #Gaussian kernel (point spread function (PSF))
-    return c*np.exp(-np.transpose(s-t) @ B @ (s-t)) #Or should the last s be x????
+    x = xt(t)
 
-#A = K(s_i,t_i)*dt , s = t.
-A = np.zeros((n,n))
-for i in range(n):
-    for j in range(n):
-        A[i,j] = K(t[i],t[j]) * dt
+    #Gaussian kernel
+    B = 1   #In Gaussian kernel, choose sufficiently large. 1D
+    c = 1   #Const, which value to use?
+    def K(s,t):     #Gaussian kernel (point spread function (PSF))
+        return c*np.exp(-np.transpose(s-t) * B * (s-t)) #Or should the last s be x????
 
-#Error
-Ndist = np.random.normal(0, 1, n)  #Normal distribution
-nl = 0.5            #Noise level
-e = nl * Ndist       #Noise
+    #A = K(s_i,t_i)*dt , s = t.
+    A = np.zeros((n,n))
+    for i in range(n):
+        for j in range(n):
+            A[i,j] = K(t[i],t[j]) * dt
 
-#Observed data
-b = A @ x + e 
+    #Error
+    Ndist = np.random.normal(0, 1, n)  #Normal distribution
+    #nl = 0.5            #Noise level
+    e = nl * Ndist       #Noise
 
-#L is fin-diff approx of first derivative
-L = np.eye(n-1,n)
-L = L-np.eye(n-1,n,k=1)
+    #Observed data
+    b = A @ x + e 
 
-#Reconstruct signal bu solving regularized lsq prob (1.3) using 
-#GSVD of (A,L)
-U, V, C, S, W, Winv = gsvd(A,L)
-        #A = U @ C @ Winv
-        #L = V @ S @ Winv
+    #L is fin-diff approx of first derivative
+    L = np.eye(n-1,n)
+    L = L-np.eye(n-1,n,k=1)
 
-#My = Nb
-M = np.transpose(C) @ C + lb^2*(np.transpose(S) @ S)
-N = np.transpose(C) @ U
+    #Reconstruct signal bu solving regularized lsq prob (1.3) using 
+    #GSVD of (A,L)
+    U, V, C, S, W, Winv = gsvd.gsvd(A,L)
+            #A = U @ C @ Winv
+            #L = V @ S @ Winv
 
-y = np.invert(M) @ N @ b
+    #From solving lsq problem using gsvd. See Task 4.
+    #My = Nb
+    M = np.transpose(C) @ C + lb**2*(np.transpose(S) @ S)
+    N = np.transpose(C) @ U
 
-x = W @ y
+    #y = np.invert(M) @ N @ b
+    y = (1/M) @ N @ b
 
-min(np.linalg.norm(A @ x - b))
+    x_re = W @ y
+
+    #Filter factor
+    Phi = C*C / (C*C + lb**2 * S*S)
+
+    #Time array, true signal, reconstructed signal, blurred noisy data, filter factor
+    return t, x, x_re, b, Phi

@@ -9,3 +9,6 @@
 BQR = np.eye(n) 
 BQR[0,0] = 1/2
 BQR[-1,-1] = 1/2
+
+
+min(np.linalg.norm(A @ x - b))
