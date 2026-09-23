@@ -5,10 +5,10 @@ import gsvd
 #Number of samples: n
 def deblurr(lb = 0.5, nl = 0.5, n = 10):
 
-    a = -1                          #Upper bound
-    b = 1                           #Lower bound
+    ba = -1                          #Upper bound
+    bb = 1                           #Lower bound
     #n = 10                         #Number of samples
-    t = np.linspace(a,b,n)          #Time array (equidistant)
+    t = np.linspace(ba,bb,n)          #Time array (equidistant)
     dt= t[1]-t[0]                   #Time step
     #x = np.exp(t)*np.sin(np.pi*t)   #x at time t array
 
@@ -48,10 +48,14 @@ def deblurr(lb = 0.5, nl = 0.5, n = 10):
             #A = U @ C @ Winv
             #L = V @ S @ Winv
 
+    print("C:\n",np.size(C))
+    print("S:\n",np.size(S))
+
     #From solving lsq problem using gsvd. See Task 4.
     #My = Nb
     M = np.transpose(C) @ C + lb**2*(np.transpose(S) @ S)
     N = np.transpose(C) @ U
+
 
     #y = np.invert(M) @ N @ b
     y = (1/M) @ N @ b
@@ -59,7 +63,10 @@ def deblurr(lb = 0.5, nl = 0.5, n = 10):
     x_re = W @ y
 
     #Filter factor
-    Phi = C*C / (C*C + lb**2 * S*S)
+
+    alpha = np.diag(C)
+    beta  = np.diag(S)
+    Phi = alpha**2/ (alpha**2 + lb**2 * beta**2)
 
     #Time array, true signal, reconstructed signal, blurred noisy data, filter factor
     return t, x, x_re, b, Phi
