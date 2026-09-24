@@ -3,7 +3,7 @@ import gsvd
 
 #Lambda: 0<=lb<=1
 #Number of samples: n
-def deblurr(lb = 0.5, nl = 0.5, n = 10):
+def deblurr(lb = 0.5, nl = 0.5, n = 100):
 
     ba = -1                          #Upper bound
     bb = 1                           #Lower bound
@@ -48,25 +48,32 @@ def deblurr(lb = 0.5, nl = 0.5, n = 10):
             #A = U @ C @ Winv
             #L = V @ S @ Winv
 
-    print("C:\n",np.size(C))
-    print("S:\n",np.size(S))
+    #print("C:\n",C.shape)
+    #print("S:\n",S.shape)
 
     #From solving lsq problem using gsvd. See Task 4.
-    #My = Nb
-    M = np.transpose(C) @ C + lb**2*(np.transpose(S) @ S)
+    #Qy = Nb
+    Q = np.transpose(C) @ C + lb**2*(np.transpose(S) @ S)
     N = np.transpose(C) @ U
 
 
     #y = np.invert(M) @ N @ b
-    y = (1/M) @ N @ b
+    y = (1/Q) @ N @ b
 
     x_re = W @ y
 
     #Filter factor
+    #Finding out array length
+    M = np.vstack((A,L))
+    print(M.shape)
+    r = np.linalg.matrix_rank(M)
+    print("r: ",r)
 
+    #Extract diagonals (and add 0 at the end of beta)
     alpha = np.diag(C)
-    beta  = np.diag(S)
-    Phi = alpha**2/ (alpha**2 + lb**2 * beta**2)
+    beta  = np.concatenate([np.diag(S),[0]])
+    #Calculate filter factors
+    Phi = alpha[:r]**2/ (alpha[:r]**2 + lb**2 * beta[:r]**2)
 
     #Time array, true signal, reconstructed signal, blurred noisy data, filter factor
     return t, x, x_re, b, Phi
