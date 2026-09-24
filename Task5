@@ -1,5 +1,6 @@
 from matplotlib import pyplot as plt 
 import Deblurring as db
+import numpy as np
 #Default:
     # lambda, noise level, number of samples
     # def deblurr(lb = 0.5, nl = 0.5, n = 10):
@@ -11,18 +12,23 @@ import Deblurring as db
 #solution. Plot the true signal, the blurred noisy data, and the reconstructed
 #signals in the same figure. Compare the quality of the reconstructions.
 
+B = 200
+n = 200
 
 #Regularized solution
-t, x_t, x_r, b_r, Phi_r = db.deblurr()
+t, x_t, x_r, b_r, Phi_r = db.deblurr(n=n, B = B)
 
 #Unregularized solution
-t, x_t, x_u, b_u, Phi_u = db.deblurr(0)
+t, x_t, x_u, b_u, Phi_u = db.deblurr(0,n=n,  B = B)
+
+print(np.isfinite(x_r).all(), np.isfinite(x_u).all())
+print(np.isnan(x_r).sum(), "NaNs in x_r")
 
 plt.figure()
-plt.plot(t, x_t, label="True signal")
+#plt.plot(t, x_t, label="True signal")
 plt.plot(t, x_r, label="Regularized")
-plt.plot(t, b_r, label="Blurred noisy regularized data")
+#plt.plot(t, b_r, label="Blurred noisy regularized data")
 plt.plot(t, x_u, label="Unregularized")
-plt.plot(t, b_u, label="Blurred noisy unregularized data")
+#plt.plot(t, b_u, label="Blurred noisy unregularized data")
 plt.legend()
 plt.show()
