@@ -17,15 +17,14 @@ n = 200
 
 #Regularized solution
 l=[0.1, 1, 100]
-plt.figure()
+plt.figure(figsize=(11/2.54, 9/2.54))
 for i,lb in enumerate(l):
     t, x_t, x_r, b_r, Phi_r = db.deblurr(lb, n=n, B = B)
 
-    #plt.figure(i)
     plt.title("Regularized solution")
     if i == 0:
         plt.plot(t, x_t, label="True signal")
-    plt.plot(t, x_r, label=f"Regularized (lambda = {lb})")
+    plt.plot(t, x_r, label=f"$\lambda$ = {lb}")
     plt.xlabel("t")
     plt.ylabel("x(t)")
     plt.legend()
@@ -33,14 +32,14 @@ for i,lb in enumerate(l):
 #Unregularized
 t, x_t, x_u, b_r, Phi_r = db.deblurr(0, n=n, B = B)
 
-plt.figure(2)
+plt.figure(figsize=(11/2.54, 9/2.54))
 plt.title("Unregularized solution")
 plt.plot(t, x_u)#, label="Unregularized")
 plt.xlabel("t")
 plt.ylabel("x(t)")
 #plt.legend()
 
-plt.figure(3)
+plt.figure(figsize=(11/2.54, 9/2.54))
 plt.title("Blurred noisy data")
 plt.plot(t, b_r)#, label="")
 #plt.legend()
@@ -49,39 +48,39 @@ plt.ylabel("b(t)")
 
 # Filter values
 l=[0.1, 1, 100]
-plt.figure()
+plt.figure(figsize=(11/2.54, 9/2.54))
 for i,lb in enumerate(l):
     t, x_t, x_r, b_r, Phi_r = db.deblurr(lb, n=n, B = B)
 
     #plt.figure(i)
     plt.title("Filter factor")
-    plt.plot(Phi_r, label=f"lambda = {lb}")
+    plt.plot(Phi_r, label=f"$\lambda$ = {lb}")
     plt.xlabel("t")
-    plt.ylabel("phi_i(lambda)")
+    plt.ylabel(f"phi_i($\lambda$)")
     plt.xlim(int(0.8*n), n)
     plt.legend()
 
 noises=[0.1, 0.5, 1, 10]
-plt.figure()
+plt.figure(figsize=(11/2.54, 9/2.54))
 for i, noise in enumerate(noises):
     t, x_t, x_r, b_r, Phi_r = db.deblurr(1, n=n, B = B, nl=noise)
 
     plt.title("Noise level variation (regularized)")
     if i == 0:
         plt.plot(t, x_t, label="True signal")
-    plt.plot(t, x_r, label=f"Regularized (noise level = {noise})")
+    plt.plot(t, x_r, label=f"Noise level = {noise}")
     plt.xlabel("t")
     plt.ylabel("x(t)")
     plt.legend()
 
-plt.figure()
+plt.figure(figsize=(11/2.54, 9/2.54))
 for i, noise in enumerate(noises):
     t, x_t, x_r, b_r, Phi_r = db.deblurr(0, n=n, B = B, nl=noise)
 
     plt.title("Noise level variation (unregularized)")
     if i == 0:
         plt.plot(t, x_t, label="True signal")
-    plt.plot(t, x_r, label=f"Unregularized (noise level = {noise})")
+    plt.plot(t, x_r, label=f"Noise level = {noise}")
     plt.xlabel("t")
     plt.ylabel("x(t)")
     plt.legend()
