@@ -1,6 +1,6 @@
 import numpy as np
 import scipy
-import gsvd
+import gsvd as gsvd
 
 #Lambda: 0<=lb<=1
 #Number of samples: n
