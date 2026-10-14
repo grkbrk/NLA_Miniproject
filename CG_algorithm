@@ -73,6 +73,17 @@ def plot_evolution(X_rec, values, title):
 
     # --- PLOTTING DEL 1: BILDERNA ---
     fig =plt.figure(figsize=(10, 4))
+    for i in range(0,len(X_rec)):
+        print(i)
+        plt.subplot(1, len(X_rec), i+1)
+        if i ==0:
+            fig.suptitle(title, fontsize=16)
+        plt.imshow(X_rec[i], cmap="gray")
+        plt.title(values[i])
+        plt.axis("off")
+    plt.tight_layout()
+    plt.show()
+    '''
     plt.subplot(1, 3, 1)
     fig.suptitle(title, fontsize=16)
     plt.imshow(X_rec[0], cmap="gray")
@@ -90,17 +101,17 @@ def plot_evolution(X_rec, values, title):
     plt.axis("off")
     plt.tight_layout()
     plt.show()
-
+    '''
 # --- PLOTTING DEL 2: KONVERGENSKURVOR ---
 def plot_convergence(obj_hist, rel_res_hist, rre_hist, title):
     print("Objective histories:", len(obj_hist))
     print("Residual histories:", len(rel_res_hist))
     print("RRE histories:", len(rre_hist))
-    fix, axs = plt.subplots(1, 3, figsize=(10, 4))
+    fix, axs = plt.subplots(1, 3, figsize=(10, 4)) #Alltid 3
     #plt.suptitle(title, fontsize=16)
     # Plot 1: Objektfunktionen
     for i in range(0,len(obj_hist)):
-        axs[0].plot(obj_hist[i], color = (['orange', 'green', 'blue'][i]), linewidth = 2, label =(["a","b","c"][i]), linestyle = ([":", "-", "--"][i]))
+        axs[0].plot(obj_hist[i], color = (['orange', 'green', 'blue'][i]), linewidth = 2, label =(["Test 1","Test 2","Test 3"][i]), linestyle = ([":", "-", "--"][i]))
         # 2. Plot the last value as a dot
         last_x = len(obj_hist[i]) - 1
         last_y = obj_hist[i][-1]
