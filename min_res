@@ -1,6 +1,7 @@
 #MINRES
 import numpy as np
 from CG_algorithm import *
+import time
 '''
 def minres(A, b, x0, tol=1e-5, max_iter=100):
     x = x0.copy()
@@ -233,11 +234,17 @@ if __name__ == "__main__":
     C = LinearOperator((n, n), matvec=lambda v, lam=lam: apply_C(v, lam), dtype=float)
     
     # Kör CG
+    start_cg = time.time()
     X_cg, it_cg, res_cg, obj_cg, rel_cg, rre_cg = CG(C, D, x0, A, L, b, x_true, lam, tol=stopping_tol, max_iter=max_iterations)
+    end_cg = time.time()
+    print("Elapsed time CG: ", end_cg - start_cg)
     X_rec_cg = X_cg.reshape((n1, n2), order="F")
     
     # Kör MINRES (med samma C och D)
+    start_cg = time.time()
     X_mr, it_mr, res_mr, obj_mr, rel_mr, rre_mr = minres(C, D, x0, A, L, b, x_true, lam, tol=stopping_tol, max_iter=max_iterations)
+    end_cg = time.time()
+    print("Elapsed time minres: ", end_cg - start_cg)
     X_rec_mr = X_mr.reshape((n1, n2), order="F")
 
     # Samla för plotting (a = CG, b = MINRES)
