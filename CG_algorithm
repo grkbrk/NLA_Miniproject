@@ -74,7 +74,6 @@ def plot_evolution(X_rec, values, title):
     # --- PLOTTING DEL 1: BILDERNA ---
     fig =plt.figure(figsize=(10, 4))
     for i in range(0,len(X_rec)):
-        print(i)
         plt.subplot(1, len(X_rec), i+1)
         if i ==0:
             fig.suptitle(title, fontsize=16)
