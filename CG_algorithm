@@ -1,0 +1,283 @@
+from PIL import Image
+import numpy as np
+import scipy.sparse as sp
+from scipy.sparse.linalg import LinearOperator
+from Deblurring_CG import creating_matrices
+import miniproj_task6_CG as mp
+import matplotlib.pyplot as plt
+from minres import minres
+
+# CG algorithm updated for tracking history
+def CG(C_op, D, x0, A, L, b, x_true, lam, tol=1e-5, max_iter=1000):
+    r = D - C_op @ x0
+    p = r.copy()
+    x = x0.copy()
+    ro = r.T @ r
+    iterations = 0
+
+    # Förbered listor för att spara historik för varje iteration
+    obj_history = []
+    rel_res_history = []
+    rre_history = []
+
+    norm_D = np.linalg.norm(D)
+    norm_xtrue = np.linalg.norm(x_true)
+
+    while iterations < max_iter:
+        # --- BERÄKNA METRIKER FÖR DENNA ITERATION ---
+        # 1. Objektfunktionen: ||Ax - b||^2 + lambda^2 * ||Lx||^2
+        Ax = A @ x
+        Lx = L @ x
+        obj_history.append(np.linalg.norm(Ax - b) ** 2 + (lam ** 2) * np.linalg.norm(Lx) ** 2)
+
+        # 2. Relativ residual för de normala ekvationerna: ||C*x - D|| / ||D||
+        # (Använder r = D - C*x som redan är beräknat eller uppdaterat)
+        rel_res = np.linalg.norm(r) / norm_D
+        rel_res_history.append(rel_res)
+
+        # 3. Relativt rekonstruktionsfel (RRE): ||x_true - x|| / ||x_true||
+        rre = np.linalg.norm(x_true - x) / norm_xtrue
+        rre_history.append(rre)
+
+        # --- STANDARD CG UPPDATERING ---
+        q = C_op @ p
+        alpha = ro / (p.T @ q)
+        x = x + alpha * p 
+        r = r - alpha * q
+
+        # Kolla konvergens mot toleransen
+        if np.linalg.norm(r) / norm_D <= tol:
+            # Spara sista värdena innan vi bryter
+            obj_history.append(np.linalg.norm(A @ x - b) ** 2 + (lam ** 2) * np.linalg.norm(L @ x) ** 2)
+            rel_res_history.append(np.linalg.norm(r) / norm_D)
+            rre_history.append(np.linalg.norm(x_true - x) / norm_xtrue)
+            iterations += 1
+            break
+            
+        ro_new = r.T @ r
+        beta = ro_new / ro
+        p = r + beta * p
+
+        ro = ro_new
+        iterations += 1
+
+    residual = r  # r motsvarar D - C @ x efter loopen
+    
+    # Returnera historik-listorna också så att vi kan plotta dem
+    return x, iterations, residual, obj_history, rel_res_history, rre_history
+
+if __name__ == "__main__":
+    # ------------------ SEKTION FÖR BILDREKONSTRUKTION ------------------
+    img = Image.open("img-1.png").convert("L")   # "L" = grayscale
+    X = np.asarray(img, dtype=float) / 255.0
+
+    n1, n2 = X.shape
+    n = n1 * n2
+    beta = 0.05
+    eps = 1e-3
+    sigma = 0.01
+    x0 = np.zeros(n)
+    
+    L = mp.difference_matrix_2d(n1, n2) 
+    A = mp.blur_matrix(n1, n2, beta, eps)
+
+    x_true = X.reshape(-1, order="F") 
+    np.random.seed(123)
+    e = sigma * np.random.randn(n)
+    b = A @ x_true + e 
+    B = b.reshape((n1, n2), order="F") 
+
+    # --- REGREGLAGE (Dessa kan du ändra på för dina experiment!) ---
+
+    def apply_C(v,lam):
+        return A.T @ (A @ v) + lam**2 * (L.T @ (L @ v))
+
+    #C = LinearOperator((n, n), matvec=apply_C, dtype=float)
+    C = LinearOperator((n, n), matvec=lambda v: apply_C(v, lam),dtype=float)
+    D = A.T @ b
+    
+    # Kör CG med alla parametrar inskickade
+    def plot_evolution(X_rec, values, title):
+
+        # --- PLOTTING DEL 1: BILDERNA ---
+        fig =plt.figure(figsize=(10, 4))
+        plt.subplot(1, 3, 1)
+        fig.suptitle(title, fontsize=16)
+        plt.imshow(X_rec[0], cmap="gray")
+        plt.title(values[0])
+        plt.axis("off")
+
+        plt.subplot(1, 3, 2)
+        plt.imshow(X_rec[1], cmap="gray")
+        plt.title(values[1])
+        plt.axis("off")
+
+        plt.subplot(1, 3, 3)
+        plt.imshow(X_rec[2], cmap="gray")
+        plt.title(values[2])
+        plt.axis("off")
+        plt.tight_layout()
+        plt.show()
+
+        # --- PLOTTING DEL 2: KONVERGENSKURVOR ---
+    def plot_convergence(obj_hist, rel_res_hist, rre_hist, title):
+        print("Objective histories:", len(obj_hist))
+        print("Residual histories:", len(rel_res_hist))
+        print("RRE histories:", len(rre_hist))
+        fix, axs = plt.subplots(1, 3, figsize=(10, 4))
+        #plt.suptitle(title, fontsize=16)
+        # Plot 1: Objektfunktionen
+        for i in range(0,len(obj_hist)):
+            axs[0].plot(obj_hist[i], color = (['orange', 'green', 'blue'][i]), linewidth = 2, label =(["a","b","c"][i]), linestyle = ([":", "-", "--"][i]))
+            # 2. Plot the last value as a dot
+            last_x = len(obj_hist[i]) - 1
+            last_y = obj_hist[i][-1]
+            axs[0].plot(last_x, last_y, marker='o', color=['orange', 'green', 'blue'][i])
+        #axs[0].plot(obj_hist[0], color='orange', linewidth=2)
+        #axs[0].plot(obj_hist[1], color='green', linewidth=2)
+        #axs[0].plot(obj_hist[2], color='blue', linewidth=2)
+        axs[0].set_title('Objective Function\n'r'$\|Ax-b\|_2^2 + \lambda^2\|Lx\|_2^2$')
+        axs[0].set_xlabel('Iteration ($k$)')
+        axs[0].set_ylabel('Log Scale Value')
+        axs[0].set_yscale('log')
+        axs[0].grid(True, which="both", ls="--")
+        axs[0].legend()
+        
+
+        # Plot 2: Relativ Residual
+        #axs[1].plot(rel_res_hist[0], color='orange', linewidth=2)
+        #axs[1].plot(rel_res_hist[1], color='green', linewidth=2)
+        #axs[1].plot(rel_res_hist[2], color='blue', linewidth=2)
+        for i in range(0,len(rel_res_hist)):
+            axs[1].plot(rel_res_hist[i], color = (['orange', 'green', 'blue'][i]), linewidth = 2, label =(["a","b","c"][i]), linestyle = ([":", "-", "--"][i]))
+            last_x = len(rel_res_hist[i]) - 1
+            last_y = rel_res_hist[i][-1]
+            axs[1].plot(last_x, last_y, marker='o', color=['orange', 'green', 'blue'][i])
+        axs[1].set_yscale('log')
+        axs[1].set_title('Relative Residual of Normal Eqs\n'r'$\|C x^{(k)} - D\|_2 / \|D\|_2$')
+        axs[1].set_xlabel('Iteration ($k$)')
+        axs[1].set_ylabel('Log Scale Value')
+        axs[1].set_yscale('log')
+        axs[1].grid(True, which="both", ls="--")
+        axs[1].legend()
+        
+
+        # Plot 3: Relativt Rekonstruktionsfel (RRE)
+        #axs[2].plot(rre_hist[0], color='orange', linewidth=2)
+        #axs[2].plot(rre_hist[1], color='green', linewidth=2)
+        #axs[2].plot(rre_hist[2], color='blue', linewidth=2)
+        for i in range(0,len(rre_hist)):
+            axs[2].plot(rre_hist[i], color = (['orange', 'green', 'blue'][i]), linewidth = 2, label =(["a","b","c"][i]), linestyle = ([":", "-", "--"][i]))
+            last_x = len(rre_hist[i]) - 1
+            last_y = rre_hist[i][-1]
+            axs[2].plot(last_x, last_y, marker='o', color=['orange', 'green', 'blue'][i])
+        axs[2].set_title('Relative Reconstruction Error (RRE)\n'r'$\|x_{true} - x^{(k)}\|_2 / \|x_{true}\|_2$')
+        axs[2].set_xlabel('Iteration ($k$)')
+        axs[2].set_ylabel('Linear Scale Value')
+        axs[2].set_yscale('log')
+        axs[2].grid(True, which="both", ls="--")
+        axs[2].legend()
+        plt.show()
+
+    lst = []
+    values = []
+    obj = []
+    rel = []
+    rre = []
+    for lam in [0.01, 0.05, 0.1]: # Vary lambda for each iteration
+        C = LinearOperator((n, n), matvec=lambda v, lam=lam: apply_C(v, lam), dtype=float)
+        D = A.T @ b
+
+        values.append(f'lambda = {lam:.3f}')
+        stopping_tol = 1e-7
+        max_iterations = 1000
+        X, iterations, residual, obj_hist, rel_res_hist, rre_hist = CG(C, D, x0, A, L, b, x_true, lam, tol=stopping_tol, max_iter=max_iterations)
+
+        X_rec = X.reshape((n1, n2), order="F")
+        lst.append(X_rec)
+        obj.append(obj_hist)
+        rel.append(rel_res_hist)
+        rre.append(rre_hist)
+        print("\n--- RESULTAT ---")
+        print("Iterations executed:", iterations)
+        print("Final Rel Residual:", rel_res_hist[-1])
+        print("Final RRE:", rre_hist[-1])
+        print("Final Objective function value:", obj_hist[-1])
+
+        print(
+                    f"tol={stopping_tol:.1e}, "
+                    f"iterations={iterations}, "
+                    f"history lengths: obj={len(obj_hist)}, "
+                    f"res={len(rel_res_hist)}, "
+                    f"rre={len(rre_hist)}"
+                )
+    plot_evolution(lst, values, title=f'Varying lamda')
+    plot_convergence(obj, rel, rre, title=f'Convergence Plots for Varying Lambda')
+
+    lst =[]
+    values = []
+    obj = []
+    rel = []
+    rre = []
+    
+
+    for stopping_tol in [1e-1, 1e-4, 1e-10]:# Vary stopping tolerance for each iteration
+        lam = 0.05
+        max_iterations = 1000
+        C = LinearOperator((n, n), matvec=lambda v, lam=lam: apply_C(v, lam),dtype=float)
+        X, iterations, residual, obj_hist, rel_res_hist, rre_hist = CG(C, D, x0, A, L, b, x_true, lam, tol=stopping_tol, max_iter=max_iterations)
+        X_rec = X.reshape((n1, n2), order="F")
+        lst.append(X_rec)
+        values.append(f'stopping_tol = {stopping_tol:.3e}')
+        obj.append(obj_hist)
+        rel.append(rel_res_hist)
+        rre.append(rre_hist)
+        print("\n--- RESULTAT ---")
+        print("Iterations executed:", iterations)
+        print("Final Rel Residual:", rel_res_hist[-1])
+        print("Final RRE:", rre_hist[-1])
+        print("Final Objective function value:", obj_hist[-1])
+
+        print(
+            f"tol={stopping_tol:.1e}, "
+            f"iterations={iterations}, "
+            f"history lengths: obj={len(obj_hist)}, "
+            f"res={len(rel_res_hist)}, "
+            f"rre={len(rre_hist)}"
+        )
+    plot_evolution(lst, values, title=f'Varying Stopping Tolerance')
+    plot_convergence(obj, rel, rre, title=f'Convergence Plots for Varying Stopping Tolerance')
+   
+    lst =[]
+    values = []
+    obj = []
+    rel = []
+    rre = []
+
+    
+    for max_iterations in [10, 30, 100]:  # Vary max iterations
+        lam = 0.05
+        stopping_tol = 1e-12
+        C = LinearOperator((n, n), matvec=lambda v, lam=lam: apply_C(v, lam),dtype=float)
+        X, iterations, residual, obj_hist, rel_res_hist, rre_hist = CG(C, D, x0, A, L, b, x_true, lam, tol=stopping_tol, max_iter=max_iterations)
+        X_rec = X.reshape((n1, n2), order="F")
+        lst.append(X_rec)
+        obj.append(obj_hist)
+        rel.append(rel_res_hist)
+        rre.append(rre_hist)
+        values.append(f'max_iterations = {max_iterations}')
+        print("\n--- RESULTAT ---")
+        print("Iterations executed:", iterations)
+        print("Final Rel Residual:", rel_res_hist[-1])
+        print("Final RRE:", rre_hist[-1])
+        print("Final Objective function value:", obj_hist[-1])
+
+        print(
+                    f"tol={stopping_tol:.1e}, "
+                    f"iterations={iterations}, "
+                    f"history lengths: obj={len(obj_hist)}, "
+                    f"res={len(rel_res_hist)}, "
+                    f"rre={len(rre_hist)}"
+                )
+    plot_evolution(lst, values, title=f'Varying Max Iterations')
+    plot_convergence(obj, rel, rre, title=f'Convergence Plots for Varying Max Iterations')
