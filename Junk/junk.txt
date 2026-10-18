@@ -1,0 +1,135 @@
+### Precondition
+
+
+def PCG_solver1(A, b, M, x0=None, tol=1e-8, max_it=1000, sym=False):
+    n = len(b)
+    x = np.zeros(n) if x0 is None else x0.copy()
+
+    r = b-A@x0
+    relres=1
+    flag=0
+    m=0 #Number of iterations
+    y = spsolve_tri(M,r,lower=True)
+    if sym == True:
+        MT = M.T.tocsr()
+        z = spsolve_tri(MT, y, lower=False)
+    else:
+        z = y
+    p=z
+    x = x0
+
+    while nl.norm(r) > tol and m < max_it:
+        Ap = A @ p
+        alpha = (r.T @ z) / (p.T @ Ap)
+        x_new = x + alpha * p
+        r_new = r - alpha * Ap
+
+        y = spsolve_tri(M, r_new, lower=True)
+        if sym == True:
+            z_new = spsolve_tri(MT, y, lower=False)
+        else:
+            z_new = y
+
+        beta = (r_new.T @ z_new) / (r.T @ z)
+        p_new = z_new + beta * p
+        relres = nl.norm(r_new)/nl.norm(b)
+        
+        x,r,z,p = x_new, r_new, z_new, p_new
+
+        m += 1
+
+    if m == max_it:
+        flag = 1
+
+
+    return m, x, relres, flag
+
+
+
+
+def LU_factorization(A):
+    A=csr_matrix(A, copy=True, dtype=float)
+    A.sort_indices()
+    m, n = A.shape
+    for k in range(0,n-1):
+        for i in range(k+1,n):
+            if in_pattern(A,i,k):
+                A[i,k] = A[i,k]/A[k,k] ##A[k,k] is assumed/should always exist.
+                for j in range(k+1,n):
+                    if in_pattern(A,i,j):
+                        A[i,j] = A[i,j] - A[i,k]*A[k,j]
+
+    L = tril(A, k=-1, format="csr") + eye(n, format="csr")
+    U = triu(A, format="csr")
+    return L, U
+
+def i_cholesky_slow (A):
+    A=csr_matrix(A, copy=True, dtype=float)
+    A.sort_indices()
+    m,n = A.shape
+    L = lil_matrix((n,n))
+
+    for k in range(n):
+        q = 0
+        for i in range(k):
+            if in_pattern(A,k,i):
+                q += L[k,i]**2 
+        L[k,k] = np.sqrt(A[k,k]-q)
+
+        for j in range(k+1,n):
+                w = 0
+                for i in range(0,k):
+                    if in_pattern(A,j,i) and in_pattern(A,k,i):
+                        w += L[j,i]*L[k,i]
+                L[j,k] = (A[j,k] - w) / L[k,k]
+
+    return L.tocsr()
+
+def i_cholesky(A):
+    A = tril(csr_matrix(A, copy=True, dtype=float)).tocsr()
+    A.sort_indices()
+    n = A.shape[0]
+    rows = [dict() for _ in range(n)]      # rows[i] = {col: L[i,col]}
+
+    for k in range(n):
+        # diagonal
+        q = sum(v**2 for c, v in rows[k].items() if c < k)
+        d = A[k, k] - q
+        if d <= 0:
+            raise ValueError(f"Non-positive pivot at k={k}")
+        rows[k][k] = np.sqrt(d)
+
+        # entries below the diagonal, only inside the sparsity pattern
+        for j in range(k + 1, n):
+            if in_pattern(A, j, k):
+                w = sum(v * rows[k].get(c, 0.0) for c, v in rows[j].items() if c < k)
+                rows[j][k] = (A[j, k] - w) / rows[k][k]
+
+    indptr, indices, data = [0], [], []
+    for i in range(n):
+        for c in sorted(rows[i]):
+            indices.append(c)
+            data.append(rows[i][c])
+        indptr.append(len(indices))
+    return csr_matrix((data, indices, indptr), shape=(n, n))
+
+
+
+
+def in_pattern(A,i,k):
+    row_cols = A.indices[A.indptr[i]:A.indptr[i+1]]
+    return k in row_cols
+
+   '''
+    A = poisson_2d(20)
+    b = np.ones(A.shape[0])
+
+
+    M_ic  = ic_precondition(A)
+
+    for name, Ms in [("none", lambda r: r), ("IC(0)", M_ic)]:
+        its, x, relres, flag = PCG_solver(A, b, Ms, tol=1e-8, max_it=A.shape[0])
+        print(f"{name:7s} iterations = {its}")
+
+    print("x:   ",x)
+    print("res: ", relres)'''

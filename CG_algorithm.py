@@ -5,6 +5,7 @@ from scipy.sparse.linalg import LinearOperator
 from Deblurring_CG import creating_matrices
 import miniproj_task6_CG as mp
 import matplotlib.pyplot as plt
+from CG_preconditioner import CG_precondition as precondition
 
 # CG algorithm updated for tracking history
 def CG(C_op, D, x0, A, L, b, x_true, lam, tol=1e-5, max_iter=1000):
@@ -290,3 +291,5 @@ if __name__ == "__main__":
                 )
     plot_evolution(lst, values, title=f'Varying Max Iterations')
     plot_convergence(obj, rel, rre, title=f'Convergence Plots for Varying Max Iterations')
+
+

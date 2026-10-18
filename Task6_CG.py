@@ -104,7 +104,8 @@ plt.title("Sparsity pattern of A (top-left 1000x1000)")
 plt.subplot(1, 2, 2)
 plt.spy(L[:1000, :1000], markersize=1)
 plt.title("Sparsity pattern of L (top-left 1000x1000)")
-plt.show()
+#plt.show()
+plt.savefig("sparsity_pattern.png")
 
 #7) Effect of beta and epsilon on sparsity and cost
 '''
