@@ -42,7 +42,6 @@ def PCG_solver(A, b, solveM, x0=None, tol=1e-8, max_it=100):
     if m == max_it:
         flag = 1
 
-
     return m, x, relres, flag
 
 
@@ -96,23 +95,12 @@ def ic_precondition(A):
 
     return solveM
 
-def poisson_1d(n):
-    return diags(
-        [-np.ones(n-1), 2*np.ones(n), -np.ones(n-1)],
-        offsets=[-1, 0, 1],
-        format="csr"
-    )
-
-def poisson_2d(m):
-    T = poisson_1d(m)
-    I = eye(m, format="csr")
-    return (kron(I, T) + kron(T, I)).tocsr()
 
 if __name__ == "__main__":
     # ------------------ SEKTION FÖR BILDREKONSTRUKTION ------------------
     
     img = Image.open("img-1.png").convert("L")   # "L" = grayscale
-    img = img.resize((2, 2), Image.LANCZOS)   # (width, height)
+    img = img.resize((64, 64), Image.LANCZOS)   # (width, height)
     X = np.asarray(img, dtype=float) / 255.0
 
     n1, n2 = X.shape
@@ -149,7 +137,8 @@ if __name__ == "__main__":
     print('relres: ', relres)
     print('x - x_true',nl.norm(x - x_true))
 
-    plt.imshow(x.reshape((n1, n2), order="F"), cmap="gray")
-    plt.savefig("reconstruction.png", dpi=150)
-
- 
+    fig, ax = plt.subplots()
+    ax.imshow(x.reshape((n1, n2), order="F"), cmap="gray")
+    ax.axis("off")
+    fig.savefig("reconstruction.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
