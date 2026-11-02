@@ -3,7 +3,7 @@ import numpy as np
 import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
 from Deblurring_CG import creating_matrices
-import miniproj_task6_CG as mp
+import Task6_CG as mp
 import matplotlib.pyplot as plt
 from CG_preconditioner import CG_precondition as precondition
 
